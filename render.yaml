@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: company-brain
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn api.main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false

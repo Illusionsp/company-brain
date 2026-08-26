@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+  api:
+    build: .
+    ports: ["8000:8000"]
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  telegram_bot:
+    build: .
+    env_file: .env
+    depends_on: [api]
+    environment:
+      - API_BASE_URL=http://api:8000
+    command: python bot/telegram_bot.py
+    restart: unless-stopped

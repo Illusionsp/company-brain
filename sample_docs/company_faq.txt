@@ -1,0 +1,58 @@
+Company Operations Manual — FAQ
+Last updated: January 2025
+
+REFUND POLICY
+
+Q: What is your refund policy?
+A: We offer a 30-day money-back guarantee on all purchases. If you are not satisfied for any reason, contact our support team within 30 days of purchase and we will issue a full refund, no questions asked.
+
+Q: How long does a refund take to process?
+A: Refunds are processed within 5-7 business days. The amount will be returned to the original payment method used at the time of purchase.
+
+Q: Are there any exceptions to the refund policy?
+A: Digital downloads and custom orders are non-refundable. Subscription plans can be cancelled at any time but are not eligible for partial month refunds.
+
+
+SHIPPING AND DELIVERY
+
+Q: How long does shipping take?
+A: Standard shipping takes 5-7 business days. Express shipping (2-3 business days) is available at checkout for an additional fee.
+
+Q: Do you ship internationally?
+A: Yes, we ship to over 50 countries. International orders typically take 10-14 business days. Additional customs fees may apply depending on your country.
+
+Q: How do I track my order?
+A: Once your order ships, you will receive a tracking number via email. You can use this on our website or the carrier's website to track your package in real time.
+
+
+ACCOUNT AND BILLING
+
+Q: How do I reset my password?
+A: Click "Forgot Password" on the login page and enter your email address. You will receive a password reset link within 5 minutes. Check your spam folder if you don't see it in your inbox.
+
+Q: Can I change my subscription plan?
+A: Yes, you can upgrade or downgrade your plan at any time from your account settings page. Changes take effect at the start of the next billing cycle.
+
+Q: What payment methods do you accept?
+A: We accept Visa, Mastercard, American Express, PayPal, and bank transfers for orders over $500.
+
+
+SUPPORT
+
+Q: How do I contact support?
+A: You can reach our support team by email at support@company.com, by phone Monday-Friday 9am-5pm EST at +1-800-555-0100, or via live chat on our website.
+
+Q: What is your response time for support requests?
+A: We aim to respond to all support requests within 24 hours on business days. Priority support with same-day response is available on Professional and Enterprise plans.
+
+Q: How do I submit a bug report?
+A: Submit bug reports through our help portal at help.company.com/bugs. Please include your account ID, the steps to reproduce the issue, and any relevant screenshots.
+
+
+ONBOARDING
+
+Q: How do new team members get access?
+A: New team members should email IT at it@company.com with their start date and department. Access is provisioned within 24 hours of their first day.
+
+Q: Where can I find the employee handbook?
+A: The employee handbook is available on the internal portal at internal.company.com/handbook. Log in with your company email and password.
