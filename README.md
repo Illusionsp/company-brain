@@ -146,7 +146,7 @@ curl http://localhost:8000/documents
 curl http://localhost:8000/health
 ```
 
-## Upwork portfolio description
+## Project Summary
 
 > "Built Company Brain — a production-ready internal AI knowledge base for teams. Employees ask questions in the browser or via Telegram, and the AI answers strictly from uploaded PDFs/SOPs with source citations. 
 > 
