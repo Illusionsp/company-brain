@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -34,7 +34,7 @@ from retrieval.vector_store import (
     get_stats, save_feedback, get_top_questions,
 )
 from retrieval.reranker import rerank
-from retrieval.rag_pipeline import generate_answer, clear_session, session_turns
+from retrieval.rag_pipeline import generate_answer, generate_answer_stream, clear_session, session_turns
 
 logger = logging.getLogger(__name__)
 app    = FastAPI(title="Company Brain", version="1.0.0")
@@ -174,6 +174,36 @@ async def chat(req: ChatRequest):
     return ChatResponse(answer=answer, sources=sources, used_chunks=used_chunks,
                         session_id=req.session_id or "default",
                         turns=session_turns(req.session_id or "default"))
+
+
+@app.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    if not req.question.strip():
+        raise HTTPException(400, "Question cannot be empty")
+    s = get_stats()
+    if s["total_chunks"] == 0:
+        raise HTTPException(400, "No documents indexed. Upload a document first via /ingest/file")
+
+    q_embs = await embed_texts([req.question])
+    q_vec  = q_embs[0]
+
+    candidates = hybrid_search(
+        query=req.question, query_embedding=q_vec,
+        top_k=settings.INITIAL_TOP_K, doc_filter=req.doc_filter)
+
+    if not candidates:
+        import json
+        async def empty_stream():
+            yield json.dumps({"type": "chunk", "content": "I couldn't find relevant information in the documents."}) + "\\n"
+            yield json.dumps({"type": "meta", "sources": [], "used_chunks": [], "session_id": req.session_id or "default", "turns": 0}) + "\\n"
+        return StreamingResponse(empty_stream(), media_type="text/event-stream")
+
+    reranked = rerank(req.question, candidates, top_k=req.top_k)
+
+    return StreamingResponse(
+        generate_answer_stream(req.question, reranked, req.session_id or "default"),
+        media_type="text/event-stream"
+    )
 
 
 @app.get("/documents")
@@ -359,45 +389,79 @@ async function ask() {{
   area.innerHTML = '<div class="loading">🔍 Searching documents with hybrid BM25 + semantic search, then reranking with cross-encoder...</div>';
 
   try {{
-    const r    = await fetch('/chat', {{method:'POST', headers:{{'Content-Type':'application/json'}}, body:JSON.stringify({{question:q,session_id:'web'}})}});
-    const data = await r.json();
+    const r = await fetch('/chat/stream', {{
+      method: 'POST', 
+      headers: {{'Content-Type': 'application/json'}}, 
+      body: JSON.stringify({{question: q, session_id: 'web'}})
+    }});
 
     if (!r.ok) {{
-      area.innerHTML = `<div class="answer-box" style="display:block;background:#fef2f2;border-color:#fecaca">❌ ${{data.detail}}</div>`;
+      const err = await r.json();
+      area.innerHTML = `<div class="answer-box" style="display:block;background:#fef2f2;border-color:#fecaca">❌ ${{err.detail || 'Error'}}</div>`;
       return;
     }}
 
-    lastA = data.answer;
-    const sources = data.sources.length ? `<div class="sources">📄 <strong>Sources:</strong> ${{data.sources.join(', ')}}</div>` : '';
-
-    const chunkHtml = data.used_chunks.map((c,i) => `
-      <div class="chunk">
-        <div class="chunk-top">
-          <span>📄 ${{c.doc_name}} — Chunk ${{i+1}}</span>
-          <span style="color:#2563eb">Rerank: ${{c.rerank_score.toFixed(3)}}</span>
-        </div>
-        <div class="chunk-scores">Semantic: ${{c.semantic_score.toFixed(3)}} | BM25: ${{c.bm25_score.toFixed(3)}} | Hybrid: ${{c.hybrid_score.toFixed(3)}}</div>
-        <div class="chunk-text">${{c.content.slice(0,200)}}...</div>
-      </div>`).join('');
-
     area.innerHTML = `
-      <div class="answer-box" style="display:block">
-        ${{data.answer.replace(/\\n/g,'<br>')}}
-        ${{sources}}
-        <div class="fb-row">
-          <span style="font-size:12px;color:#64748b">Was this helpful?</span>
-          <button class="fb-btn" onclick="fb('up')">👍</button>
-          <button class="fb-btn" onclick="fb('down')">👎</button>
-          <span id="fbm" style="font-size:12px;color:#16a34a"></span>
-        </div>
-      </div>
-      <div class="pipeline-trace">
-        🔬 <strong>Pipeline:</strong> Retrieved ${{data.used_chunks.length > 0 ? 20 : 0}} candidates → Cross-encoder reranked to ${{data.used_chunks.length}} | AI: {provider} | Method: hybrid_bm25_semantic
-      </div>
-      <div class="chunks-area">
-        <h2 style="margin-top:16px;margin-bottom:10px">📑 Chunks Passed to AI</h2>
-        ${{chunkHtml}}
-      </div>`;
+      <div class="answer-box" style="display:block" id="stream-answer"></div>
+      <div id="stream-meta"></div>`;
+    
+    const ansBox = document.getElementById('stream-answer');
+    const metaBox = document.getElementById('stream-meta');
+    
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let fullAnswer = "";
+    let buffer = "";
+
+    while (true) {{
+      const {{done, value}} = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, {{stream: true}});
+      const lines = buffer.split('\\n');
+      buffer = lines.pop();
+      
+      for (const line of lines) {{
+        if (!line.trim()) continue;
+        try {{
+          const data = JSON.parse(line);
+          if (data.type === 'chunk') {{
+            fullAnswer += data.content;
+            lastA = fullAnswer;
+            ansBox.innerHTML = fullAnswer.replace(/\\n/g, '<br>');
+          }} else if (data.type === 'meta') {{
+            const sources = data.sources.length ? `<div class="sources">📄 <strong>Sources:</strong> ${{data.sources.join(', ')}}</div>` : '';
+            const chunkHtml = data.used_chunks.map((c,i) => `
+              <div class="chunk">
+                <div class="chunk-top">
+                  <span>📄 ${{c.doc_name}} — Chunk ${{i+1}}</span>
+                  <span style="color:#2563eb">Rerank: ${{c.rerank_score.toFixed(3)}}</span>
+                </div>
+                <div class="chunk-scores">Semantic: ${{c.semantic_score.toFixed(3)}} | BM25: ${{c.bm25_score.toFixed(3)}} | Hybrid: ${{c.hybrid_score.toFixed(3)}}</div>
+                <div class="chunk-text">${{c.content.slice(0,200)}}...</div>
+              </div>`).join('');
+              
+            metaBox.innerHTML = `
+              ${{sources}}
+              <div class="fb-row">
+                <span style="font-size:12px;color:#64748b">Was this helpful?</span>
+                <button class="fb-btn" onclick="fb('up')">👍</button>
+                <button class="fb-btn" onclick="fb('down')">👎</button>
+                <span id="fbm" style="font-size:12px;color:#16a34a"></span>
+              </div>
+              <div class="pipeline-trace">
+                🔬 <strong>Pipeline:</strong> Retrieved ${{data.used_chunks.length > 0 ? 20 : 0}} candidates → Cross-encoder reranked to ${{data.used_chunks.length}} | AI: Streamed | Method: hybrid_bm25_semantic
+              </div>
+              <div class="chunks-area">
+                <h2 style="margin-top:16px;margin-bottom:10px">📑 Chunks Passed to AI</h2>
+                ${{chunkHtml}}
+              </div>`;
+          }}
+        }} catch(e) {{
+          console.error("Parse error:", e);
+        }}
+      }}
+    }}
   }} catch(e) {{
     area.innerHTML = '<div class="answer-box" style="display:block;background:#fef2f2;border-color:#fecaca">❌ Request failed. Is the server running?</div>';
   }}
