@@ -66,7 +66,7 @@ company-brain/
 ├── sample_docs/
 │   └── company_faq.txt      test document
 ├── config.py                all settings from .env
-├── render.yaml              one-click Render deployment
+├── streamlit_app.py         Streamlit web dashboard UI
 ├── docker-compose.yml       API + Telegram bot together
 ├── Dockerfile
 ├── .env.example
@@ -84,10 +84,10 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edit .env → add GROQ_API_KEY=gsk_...
 
-# 3. Run
-uvicorn api.main:app --reload
+# 3. Run UI
+streamlit run streamlit_app.py
 
-# 4. Open http://localhost:8000
+# 4. Open http://localhost:8501
 # Upload sample_docs/company_faq.txt
 # Ask: "What is the refund policy?"
 ```
@@ -96,7 +96,7 @@ uvicorn api.main:app --reload
 
 ```bash
 docker-compose up
-# Dashboard: http://localhost:8000
+# API: http://localhost:8000 (To run UI via Docker, update docker-compose.yml to run Streamlit)
 # Telegram bot starts automatically if TELEGRAM_BOT_TOKEN is set
 ```
 
@@ -107,14 +107,13 @@ pytest tests/ -v
 # 26 tests, no network, runs in < 2 seconds
 ```
 
-## Deploy on Render (free, 15 minutes)
+## Deploy on Streamlit Community Cloud (free, 5 minutes)
 
-1. Push to GitHub (make sure `.gitignore` excludes `.env`)
-2. Go to render.com → New Web Service → connect repo
-3. Add env var: `GROQ_API_KEY` = your key
-4. Deploy → live at `https://company-brain-xxxx.onrender.com`
-
-> **Note on Render Free Tier:** Render's free tier uses an ephemeral filesystem. If the service spins down due to inactivity, the local vector database (`/data` directory) will be reset. For a full production setup with persistent storage, you should swap the local vector store for PostgreSQL (`pgvector`) or a managed cloud database like Pinecone.
+1. Push to GitHub (make sure `.gitignore` excludes `.env` and `/data`)
+2. Go to [share.streamlit.io](https://share.streamlit.io) → New app
+3. Select your repository and point the main file path to `streamlit_app.py`
+4. Under "Advanced Settings", add your `GROQ_API_KEY` to the Secrets.
+5. Deploy → your UI is live for free!
 
 ## Production & Security Features
 
@@ -154,4 +153,4 @@ curl http://localhost:8000/health
 > - **Advanced RAG pipeline:** Hybrid BM25 + semantic retrieval (top-20), Cross-Encoder reranking (top-4), and grounded generation that prevents hallucinations.
 > - **Production Grade:** Containerized with Docker, secured with a non-root user, and deployed via Gunicorn for robust process management.
 > - **Full-Stack Features:** Multi-turn conversational memory, usage analytics dashboard, document management, and 👍👎 feedback loops.
-> - **Quality Assurance:** 26 passing tests with high coverage. Deployed to Render.com using CI/CD pipelines."
+> - **Quality Assurance:** 26 passing tests with high coverage. UI built in Streamlit and deployed seamlessly."
