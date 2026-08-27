@@ -1,8 +1,7 @@
-# ingestion/embedder.py
-# Local embeddings using sentence-transformers all-MiniLM-L6-v2.
-# 100% free — no API key needed.
-# First run downloads ~90MB model automatically.
-# After that: instant, runs offline.
+"""
+Embedding module using sentence-transformers.
+Generates local embeddings for document chunks and user queries.
+"""
 
 import logging
 from typing import List
@@ -20,11 +19,8 @@ async def embed_texts(texts: List[str]) -> List[List[float]]:
 
 def _local(texts: List[str]) -> List[List[float]]:
     """
-    Local sentence-transformers — all-MiniLM-L6-v2.
-    - Size: ~90MB (downloads once automatically)
-    - Speed: ~14,000 sentences/second on CPU
-    - Dimensions: 384
-    - Cost: FREE
+    Local sentence-transformers implementation.
+    Model: all-MiniLM-L6-v2 (Dimensions: 384)
     """
     global _local_model
     try:

@@ -13,7 +13,10 @@ from retrieval.vector_store import (
 from retrieval.reranker import rerank
 from retrieval.rag_pipeline import generate_answer, clear_session
 
-# --- Initialization ---
+"""
+Streamlit user interface for the Company Brain knowledge base.
+Provides document uploading, semantic search interaction, and pipeline visualization.
+"""
 st.set_page_config(page_title="Company Brain", page_icon="🧠", layout="wide")
 
 @st.cache_resource
@@ -31,7 +34,6 @@ if "session_id" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# --- Sidebar: Knowledge Base Management ---
 with st.sidebar:
     st.title("🧠 Company Brain")
     st.write("Upload your SOPs, policies, manuals and FAQs — your team asks questions, AI answers instantly.")
@@ -80,7 +82,6 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# --- Main Chat Interface ---
 st.title("💬 Ask a Question")
 
 # Display chat messages

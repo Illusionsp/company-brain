@@ -1,10 +1,7 @@
-# retrieval/rag_pipeline.py
-# Generation layer.
-# Key features:
-#   - "I don't know" detection — never hallucinates confidently
-#   - Multi-turn conversation memory per session
-#   - Source citations in every answer
-#   - 4 AI providers: Groq (free), Gemini (free), Anthropic, OpenAI
+"""
+Implements the core Retrieval-Augmented Generation (RAG) pipeline.
+Orchestrates context retrieval, LLM interaction, and multi-turn session memory.
+"""
 
 import logging
 from typing import List

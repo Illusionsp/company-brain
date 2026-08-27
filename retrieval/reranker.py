@@ -1,7 +1,7 @@
-# retrieval/reranker.py
-# Cross-encoder reranker.
-# Takes (question, chunk) pairs → scores true relevance together.
-# Much more accurate than cosine similarity alone.
+"""
+Cross-encoder reranking module.
+Scores retrieved candidates against the query for fine-grained relevance ranking.
+"""
 
 import logging
 from typing import List

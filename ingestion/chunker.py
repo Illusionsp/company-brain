@@ -1,4 +1,7 @@
-# ingestion/chunker.py
+"""
+Document parsing and chunking module.
+Handles text extraction and overlapping text segmentation.
+"""
 import uuid, logging
 from typing import List
 from dataclasses import dataclass, field

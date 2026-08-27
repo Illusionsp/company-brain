@@ -1,17 +1,7 @@
-# bot/telegram_bot.py
-# Telegram bot — team members ask questions from their phones.
-#
-# Setup:
-#   1. Message @BotFather → /newbot → copy token
-#   2. Set TELEGRAM_BOT_TOKEN in .env
-#   3. Run: python bot/telegram_bot.py
-#
-# Commands:
-#   /start   — welcome + instructions
-#   /docs    — list indexed documents
-#   /clear   — reset conversation history
-#   /help    — show commands
-#   (text)   — ask any question
+"""
+Telegram Bot integration for Company Brain.
+Provides a mobile-friendly conversational interface to the RAG pipeline.
+"""
 
 import asyncio, logging, httpx, os
 from dotenv import load_dotenv

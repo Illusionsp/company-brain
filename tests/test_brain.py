@@ -1,6 +1,7 @@
-# tests/test_brain.py
-# Full test suite — no network, no API calls.
-# Run: pytest tests/ -v
+"""
+Offline test suite for core Company Brain components.
+Validates chunking, embeddings, vector math, and reranking logic.
+"""
 
 import pytest
 from pathlib import Path

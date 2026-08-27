@@ -1,6 +1,7 @@
-# retrieval/vector_store.py
-# Hybrid BM25 + semantic search with SQLite.
-# Also stores feedback and session history for analytics.
+"""
+SQLite-backed vector store implementing Hybrid Search (BM25 + Semantic).
+Manages persistence for document chunks, embeddings, feedback, and telemetry.
+"""
 
 import json, math, sqlite3, logging
 from pathlib import Path
