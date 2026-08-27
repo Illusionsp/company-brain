@@ -6,7 +6,7 @@
 #   - Source citations in every answer
 #   - 4 AI providers: Groq (free), Gemini (free), Anthropic, OpenAI
 
-import logging, json
+import logging
 from typing import List
 import httpx
 from config import settings
@@ -79,104 +79,6 @@ async def generate_answer(
         {"role": "assistant", "content": ans},
     ]
     return ans
-
-
-async def generate_answer_stream(
-    question:   str,
-    chunks:     List[SearchResult],
-    session_id: str = "default",
-):
-    if not chunks:
-        yield json.dumps({"type": "chunk", "content": "I couldn't find relevant information in the documents to answer your question. Try uploading more documentation or rephrasing your question."}) + "\n"
-        yield json.dumps({"type": "meta", "sources": [], "used_chunks": [], "session_id": session_id, "turns": 0}) + "\n"
-        return
-
-    context = "\n\n---\n\n".join([
-        f"[Document: {c.doc_name}]\n{c.content}" for c in chunks
-    ])
-
-    history  = _sessions.get(session_id, [])
-    messages = [{"role": m["role"], "content": m["content"]} for m in history[-12:]]
-    messages.append({
-        "role": "user",
-        "content": f"Context from documents:\n\n{context}\n\n---\n\nQuestion: {question}",
-    })
-
-    provider = settings.ai_provider()
-    if provider == "none":
-        yield json.dumps({"type": "chunk", "content": "⚠️ No AI key configured.\n\nAdd one of these to your .env:\n• GROQ_API_KEY (free) — console.groq.com\n• GEMINI_API_KEY (free) — aistudio.google.com"}) + "\n"
-        yield json.dumps({"type": "meta", "sources": [], "used_chunks": [], "session_id": session_id, "turns": 0}) + "\n"
-        return
-
-    full_answer = ""
-    try:
-        if provider in ("groq", "openai"):
-            url = "https://api.groq.com/openai/v1/chat/completions" if provider == "groq" else "https://api.openai.com/v1/chat/completions"
-            token = settings.GROQ_API_KEY if provider == "groq" else settings.OPENAI_API_KEY
-            model = "llama-3.3-70b-versatile" if provider == "groq" else "gpt-4o-mini"
-            
-            async with httpx.AsyncClient(timeout=30) as c:
-                async with c.stream("POST", url,
-                    headers={"Authorization": f"Bearer {token}"},
-                    json={"model": model, "max_tokens": settings.MAX_TOKENS,
-                          "temperature": settings.TEMPERATURE,
-                          "stream": True,
-                          "messages": [{"role": "system", "content": SYSTEM_PROMPT}] + messages}
-                ) as r:
-                    r.raise_for_status()
-                    async for line in r.aiter_lines():
-                        if line.startswith("data: "):
-                            data_str = line[6:]
-                            if data_str.strip() == "[DONE]":
-                                break
-                            try:
-                                data = json.loads(data_str)
-                                if len(data["choices"]) > 0:
-                                    delta = data["choices"][0]["delta"]
-                                    if "content" in delta:
-                                        chunk_text = delta["content"]
-                                        full_answer += chunk_text
-                                        yield json.dumps({"type": "chunk", "content": chunk_text}) + "\n"
-                            except Exception:
-                                pass
-        else:
-            if provider == "gemini":   ans = await _gemini(question, context)
-            else:                      ans = await _anthropic(messages)
-            full_answer = ans
-            yield json.dumps({"type": "chunk", "content": ans}) + "\n"
-            
-    except httpx.HTTPStatusError as e:
-        logger.error(f"AI {provider} error {e.response.status_code}")
-        err = f"AI error ({e.response.status_code}). Check your API key."
-        yield json.dumps({"type": "chunk", "content": err}) + "\n"
-        return
-    except Exception as e:
-        logger.error(f"Generation failed: {e}")
-        err = "Something went wrong. Please try again."
-        yield json.dumps({"type": "chunk", "content": err}) + "\n"
-        return
-
-    _sessions.setdefault(session_id, [])
-    _sessions[session_id] += [
-        {"role": "user",      "content": question},
-        {"role": "assistant", "content": full_answer},
-    ]
-    
-    sources = list(dict.fromkeys(r.doc_name for r in chunks))
-    used_chunks = [
-        {"chunk_id": c.chunk_id, "doc_name": c.doc_name, "content": c.content,
-         "semantic_score": c.semantic_score, "bm25_score": c.bm25_score,
-         "hybrid_score": c.hybrid_score, "rerank_score": c.rerank_score}
-        for c in chunks
-    ]
-    meta = {
-        "type": "meta",
-        "sources": sources,
-        "used_chunks": used_chunks,
-        "session_id": session_id,
-        "turns": session_turns(session_id)
-    }
-    yield json.dumps(meta) + "\n"
 
 
 async def _groq(messages):
